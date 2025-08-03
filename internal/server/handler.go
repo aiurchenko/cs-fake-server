@@ -34,7 +34,7 @@ func (s *FakeServer) handleRequest(buffer []byte, clientAddr *net.UDPAddr, conn 
 			utils.WriteString(&response, s.cfg.Map)
 			utils.WriteString(&response, "cstrike")
 			utils.WriteString(&response, "Counter-Strike 1.6")
-			binary.Write(&response, binary.LittleEndian, int16(0x178B))
+			binary.Write(&response, binary.LittleEndian, int16(10))
 
 			s.mu.RLock()
 			players := make([]Player, len(s.players))
