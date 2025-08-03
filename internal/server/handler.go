@@ -12,6 +12,14 @@ import (
 )
 
 func (s *FakeServer) handleRequest(buffer []byte, clientAddr *net.UDPAddr, conn *net.UDPConn) {
+	// Логируем весь запрос в hex-формате
+	fmt.Printf("📨 Запрос от %s: % X\n", clientAddr, buffer)
+
+	if len(buffer) < 5 {
+		fmt.Printf("⚠️ Слишком короткий пакет от %s: длина %d\n", clientAddr, len(buffer))
+		return
+	}
+
 	header := buffer[4]
 	switch header {
 	case 0x54: // A2S_INFO
@@ -35,17 +43,19 @@ func (s *FakeServer) handleRequest(buffer []byte, clientAddr *net.UDPAddr, conn 
 
 			response.WriteByte(byte(len(players)))
 			response.WriteByte(s.cfg.MaxPlayers)
-			response.WriteByte(0)
-			response.WriteByte('d')
-			response.WriteByte('l')
-			response.WriteByte(0)
-			response.WriteByte(0)
+			response.WriteByte(0)   // Bots
+			response.WriteByte('d') // Server type
+			response.WriteByte('l') // OS
+			response.WriteByte(0)   // Visibility
+			response.WriteByte(0)   // VAC
 
 			utils.WriteString(&response, "v48")
-			response.WriteByte(0x00)
+			response.WriteByte(0x00) // EDF
 
 			conn.WriteToUDP(response.Bytes(), clientAddr)
 			fmt.Println("✅ Ответ на A2S_INFO отправлен")
+		} else {
+			fmt.Printf("⚠️ Невалидный A2S_INFO запрос от %s\n", clientAddr)
 		}
 	case 0x55: // A2S_PLAYER
 		fmt.Printf("📩 A2S_PLAYER от %s\n", clientAddr)
@@ -77,10 +87,12 @@ func (s *FakeServer) handleRequest(buffer []byte, clientAddr *net.UDPAddr, conn 
 				conn.WriteToUDP(response.Bytes(), clientAddr)
 				fmt.Println("✅ Отправлен список игроков")
 			} else {
-				fmt.Println("⚠️ Неверный challenge")
+				fmt.Println("⚠️ Неверный challenge от", clientAddr)
 			}
+		} else {
+			fmt.Printf("⚠️ Недостаточно данных в A2S_PLAYER от %s\n", clientAddr)
 		}
 	default:
-		fmt.Printf("❓ Неизвестный запрос (тип: 0x%X)\n", header)
+		fmt.Printf("❓ Неизвестный тип запроса (0x%X) от %s\n", header, clientAddr)
 	}
 }
